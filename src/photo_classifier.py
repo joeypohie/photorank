@@ -4,6 +4,7 @@ from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from sklearn.cluster import DBSCAN
 from tqdm import tqdm
+from photo_ranker import PhotoRanker
 
 class PhotoClassifier:
     def __init__(self):
@@ -11,6 +12,9 @@ class PhotoClassifier:
         # Load ResNet50 model without the top classification layer
         self.model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
         print("ResNet50 model loaded successfully!")
+        
+        # Initialize photo ranker
+        self.ranker = PhotoRanker()
 
     def preprocess_image(self, img):
         """Preprocess image for ResNet"""
@@ -26,29 +30,38 @@ class PhotoClassifier:
 
     def extract_features(self, img):
         """Extract features using ResNet"""
-        img_array = self.preprocess_image(img)
-        features = self.model.predict(img_array, verbose=0)  # Suppress TensorFlow progress
-        return features.flatten()
+        try:
+            img_array = self.preprocess_image(img)
+            features = self.model.predict(img_array, verbose=0)
+            return features.flatten()
+        except Exception as e:
+            print(f"\nError extracting features: {str(e)}")
+            return None
 
     def cluster_images(self, images, eps=0.3, min_samples=2):
         """Cluster similar images using DBSCAN"""
         print("\nExtracting features from images...")
         features = []
         filenames = []
+        image_dict = {}  # Store images for later ranking
         
         # Create progress bar for feature extraction
         for filename, img in tqdm(images, desc="Extracting features"):
             try:
                 feature = self.extract_features(img)
-                features.append(feature)
-                filenames.append(filename)
+                if feature is not None:
+                    features.append(feature)
+                    filenames.append(filename)
+                    image_dict[filename] = img
             except Exception as e:
                 print(f"\nError processing {filename}: {str(e)}")
         
         if not features:
-            return []
+            print("No features extracted from images!")
+            return {}
         
         features = np.array(features)
+        print(f"\nExtracted features from {len(features)} images")
         print("\nClustering images...")
         clustering = DBSCAN(eps=eps, min_samples=min_samples, metric='cosine')
         clusters = clustering.fit_predict(features)
@@ -58,6 +71,8 @@ class PhotoClassifier:
         for idx, cluster_id in enumerate(clusters):
             if cluster_id not in cluster_groups:
                 cluster_groups[cluster_id] = []
-            cluster_groups[cluster_id].append(filenames[idx])
+            cluster_groups[cluster_id].append((filenames[idx], image_dict[filenames[idx]]))
         
-        return cluster_groups 
+        print(f"Found {len(cluster_groups)} clusters")
+        # Rank images within each cluster
+        return self.ranker.rank_clusters(cluster_groups) 

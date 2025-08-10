@@ -1,11 +1,12 @@
 from photo_classifier import PhotoClassifier
 from utils import load_images, display_clusters
 import os
-import tensorflow as tf
+import torch
 
 def main():
-    # Initialize TensorFlow
-    print(f"Using TensorFlow version: {tf.__version__}")
+    # Initialize PyTorch
+    print(f"Using PyTorch version: {torch.__version__}")
+    print(f"Using device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
     
     # Ask the user for the directory containing photos
     directory = input("Enter the path to your photos directory: ")

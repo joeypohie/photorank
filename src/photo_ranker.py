@@ -1,38 +1,79 @@
 import numpy as np
-import tensorflow as tf
-import tensorflow_hub as hub
-from tensorflow.keras.applications.resnet50 import preprocess_input
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models, transforms
 from tqdm import tqdm
+import cv2
 
 class PhotoRanker:
     def __init__(self):
         print("Loading image quality model...")
-        # Load the model from TensorFlow Hub
-        self.model = hub.load('https://tfhub.dev/google/imagenet/mobilenet_v2_130_224/classification/4')
+        # Use MobileNetV2 from torchvision for image quality assessment
+        self.model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+        self.model.eval()
         print("Image quality model loaded successfully!")
+        
+        # Set device (CPU or GPU)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model.to(self.device)
+        
+        # Define image preprocessing transforms
+        self.transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                               std=[0.229, 0.224, 0.225])
+        ])
 
     def preprocess_image(self, img):
         """Preprocess image for the model"""
-        # Resize image to 224x224
-        img = img.resize((224, 224))
-        # Convert to numpy array and ensure float32 type
-        img_array = np.array(img, dtype=np.float32)
+        # Ensure image is in RGB format
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Apply transforms
+        img_tensor = self.transform(img)
         # Add batch dimension
-        img_array = np.expand_dims(img_array, axis=0)
-        # Normalize pixel values
-        img_array = img_array / 255.0
-        return img_array
+        img_tensor = img_tensor.unsqueeze(0)
+        return img_tensor.to(self.device)
+
+    def calculate_image_sharpness(self, img):
+        """Calculate image sharpness using Laplacian variance"""
+        try:
+            # Convert PIL image to OpenCV format
+            img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+            # Convert to grayscale
+            gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+            # Calculate Laplacian variance (measure of sharpness)
+            laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+            return laplacian_var
+        except Exception as e:
+            print(f"Error calculating sharpness: {str(e)}")
+            return 0.0
 
     def get_quality_score(self, img):
-        """Get quality score for an image"""
+        """Get quality score for an image using multiple metrics"""
         try:
-            img_array = self.preprocess_image(img)
-            # Get model predictions
-            predictions = self.model(img_array)
-            # Convert to numpy and get the highest confidence score
-            scores = tf.nn.softmax(predictions).numpy()
-            # Use the highest confidence as quality score
-            quality_score = np.max(scores) * 10  # Scale to 0-10
+            # Get neural network confidence score
+            img_tensor = self.preprocess_image(img)
+            
+            with torch.no_grad():
+                predictions = self.model(img_tensor)
+                # Apply softmax to get probabilities
+                probabilities = F.softmax(predictions, dim=1)
+                # Use the highest confidence as one quality metric
+                max_confidence = torch.max(probabilities).item()
+            
+            # Get sharpness score
+            sharpness = self.calculate_image_sharpness(img)
+            # Normalize sharpness score (typical range 0-2000, normalize to 0-1)
+            normalized_sharpness = min(sharpness / 1000.0, 1.0)
+            
+            # Combine metrics (weighted average)
+            # 70% neural network confidence, 30% sharpness
+            quality_score = (0.7 * max_confidence + 0.3 * normalized_sharpness) * 10
+            
             return quality_score
         except Exception as e:
             print(f"\nError processing image: {str(e)}")

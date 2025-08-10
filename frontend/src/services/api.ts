@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000'; // Adjust this to match your backend URL
+const API_BASE_URL = 'http://localhost:5001'; // Adjust this to match your backend URL
 
 export interface Photo {
   id: string;

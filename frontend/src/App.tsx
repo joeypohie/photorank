@@ -45,10 +45,13 @@ function App() {
         {/* Header */}
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            📸 PhotoRank
+            🧹 Image Ranker
           </h1>
           <p className="text-gray-600">
-            Upload your photos and let AI find the best ones for you
+            Lazy to crawl through your photos?
+          </p>
+          <p className="text-gray-600">
+            Upload your photos and let AI find the best one to keep
           </p>
         </header>
 
@@ -57,9 +60,9 @@ function App() {
           {/* Upload Section */}
           {!clusteringResult && (
             <section>
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
+              {/* <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
                 Upload Your Photos
-              </h2>
+              </h2> */}
               <PhotoUpload onUploadComplete={handleUploadComplete} />
             </section>
           )}

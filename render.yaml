@@ -1,26 +1,8 @@
 services:
   - type: web
-
     name: photorank-backend
-
     runtime: python
-
     plan: starter
-    
-    buildCommand: |
-      pip install -r requirements.txt
-      pip install .
-      mkdir -p uploads
-      # (optional) warm model weights cache to avoid first-request delay:
-      python - <<'PY'
-      from torchvision import models
-      models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-      models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
-      print("Weights cached.")
-      PY
-
-    startCommand: gunicorn photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
-
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -30,5 +12,39 @@ services:
         value: "104857600"
       - key: UPLOAD_FOLDER
         value: uploads
+      # (optional) speed up torchvision model downloads across deploys
+      - key: TORCH_HOME
+        value: /opt/render/persistent/.torch
+    buildCommand: |
+      pip install -U pip wheel
+      pip install -r requirements.txt
+      pip install .
+      mkdir -p uploads
+      # (optional) warm the model weights so first request is fast
+      python - <<'PY'
+      from torchvision import models
+      models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+      models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+      print("Weights cached.")
+      PY
+    startCommand: gunicorn photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
     healthCheckPath: /health
+    autoDeploy: true
+    # Persist uploads + model cache
+    disk:
+      name: photorank-data
+      mountPath: /opt/render/persistent
+      sizeGB: 2
+
+  - type: web
+    name: photorank-frontend
+    runtime: static
+    buildCommand: |
+      cd frontend
+      npm ci
+      npm run build
+    staticPublishPath: frontend/build
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
     autoDeploy: true

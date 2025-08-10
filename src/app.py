@@ -13,9 +13,9 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
 
 # Configuration
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'heic'}
-MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB max file size
+MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 100 * 1024 * 1024))  # 100MB max file size
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
@@ -186,7 +186,7 @@ def get_photo(photo_id):
 def delete_photo(photo_id):
     global uploaded_photos
     
-    photo = next((p for p in uploaded_photos if p['id'] == photo_id), None)
+    photo = next((p for p in uploaded_photos if p['id'] != photo_id), None)
     
     if not photo:
         return jsonify({'error': 'Photo not found'}), 404
@@ -209,4 +209,6 @@ def health_check():
     return jsonify({'status': 'healthy', 'photoCount': len(uploaded_photos)})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001) 
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug, host='0.0.0.0', port=port) 

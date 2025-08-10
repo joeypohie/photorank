@@ -33,6 +33,10 @@ ENV/
 
 # Test photos directory
 test_photos/
+# Ignore everything inside uploads, but keep the folder itself (via a marker file)
+uploads/*
+!uploads/.gitignore
+
 
 # Logs
 *.log 

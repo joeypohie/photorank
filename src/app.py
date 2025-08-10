@@ -186,7 +186,7 @@ def get_photo(photo_id):
 def delete_photo(photo_id):
     global uploaded_photos
     
-    photo = next((p for p in uploaded_photos if p['id'] != photo_id), None)
+    photo = next((p for p in uploaded_photos if p['id'] == photo_id), None)
     
     if not photo:
         return jsonify({'error': 'Photo not found'}), 404

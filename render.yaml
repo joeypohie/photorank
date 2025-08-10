@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: photorank-backend
+    runtime: python
+    plan: starter  # More memory for ML models
+    buildCommand: |
+      pip install -r requirements.txt
+      mkdir -p uploads
+    startCommand: gunicorn src.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
+      - key: MAX_CONTENT_LENGTH
+        value: 104857600  # 100MB
+      - key: UPLOAD_FOLDER
+        value: uploads
+    healthCheckPath: /health
+    autoDeploy: true
+
+  - type: web
+    name: photorank-frontend
+    runtime: static
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    staticPublishPath: frontend/build
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+    autoDeploy: true

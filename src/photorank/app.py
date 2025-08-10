@@ -3,8 +3,8 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
 import uuid
-from photo_classifier import PhotoClassifier
-from utils import load_images, display_clusters
+from .photo_classifier import PhotoClassifier
+from .utils import load_images, display_clusters
 from PIL import Image
 import io
 import base64

@@ -4,7 +4,7 @@ import torch.nn as nn
 from torchvision import models, transforms
 from sklearn.cluster import DBSCAN
 from tqdm import tqdm
-from photo_ranker import PhotoRanker
+from .photo_ranker import PhotoRanker
 from PIL import Image
 
 class PhotoClassifier:

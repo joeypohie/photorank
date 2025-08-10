@@ -1,5 +1,5 @@
-from photo_classifier import PhotoClassifier
-from utils import load_images, display_clusters
+from photorank.photo_classifier import PhotoClassifier
+from photorank.utils import load_images, display_clusters
 import os
 import torch
 

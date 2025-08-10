@@ -1,36 +1,34 @@
 services:
   - type: web
+
     name: photorank-backend
+
     runtime: python
-    plan: starter  # More memory for ML models
+
+    plan: starter
+    
     buildCommand: |
       pip install -r requirements.txt
+      pip install .
       mkdir -p uploads
-      cp -r src/* .
-      ls -la
-      python -c "import photo_classifier; print('Import successful')"
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
+      # (optional) warm model weights cache to avoid first-request delay:
+      python - <<'PY'
+      from torchvision import models
+      models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+      models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+      print("Weights cached.")
+      PY
+
+    startCommand: gunicorn photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: FLASK_ENV
         value: production
       - key: MAX_CONTENT_LENGTH
-        value: 104857600  # 100MB
+        value: "104857600"
       - key: UPLOAD_FOLDER
         value: uploads
     healthCheckPath: /health
-    autoDeploy: true
-
-  - type: web
-    name: photorank-frontend
-    runtime: static
-    buildCommand: |
-      cd frontend
-      npm install
-      npm run build
-    staticPublishPath: frontend/build
-    envVars:
-      - key: NODE_VERSION
-        value: 18.0.0
     autoDeploy: true

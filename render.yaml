@@ -11,26 +11,36 @@ services:
       - key: MAX_CONTENT_LENGTH
         value: "104857600"
       - key: UPLOAD_FOLDER
-        value: uploads
-      # (optional) speed up torchvision model downloads across deploys
+        value: /opt/render/persistent/uploads   # persist uploads across deploys
       - key: TORCH_HOME
-        value: /opt/render/persistent/.torch
+        value: /opt/render/persistent/.torch    # persist model weights cache
     buildCommand: |
-      pip install -U pip wheel
+      set -e
+      python -V
+      pip install -U pip wheel setuptools
       pip install -r requirements.txt
       pip install .
-      mkdir -p uploads
-      # (optional) warm the model weights so first request is fast
+      # ensure persistent dirs exist
+      mkdir -p /opt/render/persistent/uploads
+      mkdir -p /opt/render/persistent/.torch
+      # sanity check package import
       python - <<'PY'
-      from torchvision import models
-      models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-      models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
-      print("Weights cached.")
-      PY
+import pkgutil, sys
+print('python:', sys.version)
+print('HAS photorank?', bool(pkgutil.find_loader('photorank')))
+import photorank, photorank.app as a
+print('photorank package at:', photorank.__file__)
+PY
+      # (optional) warm model weights so first request is fast
+      python - <<'PY'
+from torchvision import models
+models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+print("Weights cached.")
+PY
     startCommand: gunicorn photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
     healthCheckPath: /health
     autoDeploy: true
-    # Persist uploads + model cache
     disk:
       name: photorank-data
       mountPath: /opt/render/persistent

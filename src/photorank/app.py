@@ -3,6 +3,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
 import uuid
+from datetime import datetime
 from .photo_classifier import PhotoClassifier
 from .utils import load_images, display_clusters
 from PIL import Image
@@ -93,7 +94,11 @@ def upload_photos():
 def process_photos():
     global uploaded_photos, clustering_results, classifier, processing_status
     
+    print("=== PROCESS ENDPOINT CALLED ===")
+    print(f"Uploaded photos count: {len(uploaded_photos)}")
+    
     if not uploaded_photos:
+        print("ERROR: No photos uploaded")
         return jsonify({'error': 'No photos uploaded'}), 400
     
     try:
@@ -106,14 +111,18 @@ def process_photos():
             # Use lite version for Hobby plan to save memory
             from .photo_classifier_lite import PhotoClassifierLite
             classifier = PhotoClassifierLite()
+            print("PhotoClassifier initialized successfully")
         
         processing_status = {"status": "processing", "message": "Extracting features..."}
         # Extract images for clustering (only use the image data, not the full photo object)
         images = [(photo['filename'], photo['image']) for photo in uploaded_photos]
+        print(f"Extracted {len(images)} images for clustering")
         
         processing_status = {"status": "processing", "message": "Clustering images..."}
         # Perform clustering
+        print("Starting clustering...")
         cluster_groups = classifier.cluster_images(images)
+        print(f"Clustering completed. Found {len(cluster_groups)} groups")
         
         # Convert results to frontend format
         clusters = []
@@ -181,17 +190,22 @@ def process_photos():
         cleaned_results = clean_for_json(clustering_results)
         print("Debug - Cleaned clustering_results:", cleaned_results)
         
+        print("About to create JSON response...")
         try:
             response = jsonify(cleaned_results)
             print("Debug - JSON response created successfully")
+            print(f"Response size: {len(str(cleaned_results))} characters")
             return response
         except Exception as json_error:
             print(f"Debug - JSON serialization error: {json_error}")
+            import traceback
+            traceback.print_exc()
             # Return a simplified response without the problematic data
             simplified_results = {
                 'clusters': [{'id': c['id'], 'photoCount': len(c['photos'])} for c in clusters],
                 'unclustered': [{'id': p['id'], 'filename': p['filename']} for p in unclustered]
             }
+            print("Returning simplified results")
             return jsonify(simplified_results)
         
     except Exception as e:
@@ -255,6 +269,15 @@ def health_check():
 def get_processing_status():
     global processing_status
     return jsonify(processing_status)
+
+@app.route('/test', methods=['GET'])
+def test_endpoint():
+    """Simple test endpoint to verify backend is working"""
+    return jsonify({
+        'message': 'Backend is working',
+        'photoCount': len(uploaded_photos),
+        'timestamp': str(datetime.now())
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

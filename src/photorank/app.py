@@ -26,7 +26,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Global variables to store uploaded photos and results
 uploaded_photos = []
 clustering_results = None
-classifier = PhotoClassifier()
+classifier = None  # Initialize lazily to save memory
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -90,12 +90,19 @@ def upload_photos():
 
 @app.route('/process', methods=['POST'])
 def process_photos():
-    global uploaded_photos, clustering_results
+    global uploaded_photos, clustering_results, classifier
     
     if not uploaded_photos:
         return jsonify({'error': 'No photos uploaded'}), 400
     
     try:
+        # Initialize classifier lazily to save memory
+        if classifier is None:
+            print("Initializing PhotoClassifier...")
+            # Use lite version for Hobby plan to save memory
+            from .photo_classifier_lite import PhotoClassifierLite
+            classifier = PhotoClassifierLite()
+        
         # Extract images for clustering
         images = [(photo['filename'], photo['image']) for photo in uploaded_photos]
         

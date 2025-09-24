@@ -2,7 +2,7 @@ services:
   - type: web
     name: photorank-backend
     runtime: python
-    plan: starter
+    plan: hobby
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -25,6 +25,7 @@ services:
       mkdir -p /opt/render/persistent/.torch
       # sanity check package import
       python -c "import sys; sys.path.append('src'); import photorank.app; print('Import successful')"
+      # Note: Model warming removed to save memory for Hobby plan
     startCommand: gunicorn src.photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
     healthCheckPath: /health
     autoDeploy: true

@@ -8,15 +8,8 @@ import cv2
 
 class PhotoRanker:
     def __init__(self):
-        print("Loading image quality model...")
-        # Use MobileNetV2 from torchvision for image quality assessment
-        self.model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
-        self.model.eval()
-        print("Image quality model loaded successfully!")
-        
-        # Set device (CPU or GPU)
+        self.model = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model.to(self.device)
         
         # Define image preprocessing transforms
         self.transform = transforms.Compose([
@@ -25,6 +18,18 @@ class PhotoRanker:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                std=[0.229, 0.224, 0.225])
         ])
+        
+        print(f"PhotoRanker initialized. Device: {self.device}")
+    
+    def _load_model(self):
+        """Lazy load the MobileNetV2 model only when needed"""
+        if self.model is None:
+            print("Loading image quality model...")
+            # Use MobileNetV2 from torchvision for image quality assessment
+            self.model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+            self.model.eval()
+            self.model.to(self.device)
+            print("Image quality model loaded successfully!")
 
     def preprocess_image(self, img):
         """Preprocess image for the model"""
@@ -55,6 +60,9 @@ class PhotoRanker:
     def get_quality_score(self, img):
         """Get quality score for an image using multiple metrics"""
         try:
+            # Load model if not already loaded
+            self._load_model()
+            
             # Get neural network confidence score
             img_tensor = self.preprocess_image(img)
             

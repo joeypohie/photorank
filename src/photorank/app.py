@@ -166,11 +166,15 @@ def process_photos():
         print("Debug - Clustering results structure:")
         print(f"Number of clusters: {len(clusters)}")
         print(f"Number of unclustered: {len(unclustered)}")
+        print("Debug - Full clustering_results:", clustering_results)
         
         return jsonify(clustering_results)
         
     except Exception as e:
         print(f"Error processing photos: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        processing_status = {"status": "error", "message": f"Processing failed: {str(e)}"}
         return jsonify({'error': 'Failed to process photos'}), 500
 
 @app.route('/cluster', methods=['GET'])

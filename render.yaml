@@ -29,7 +29,7 @@ services:
       echo "=== Testing imports ==="
       python -c "import sys; sys.path.append('src'); import photorank.app; print('Import successful')"
       echo "=== Build completed successfully ==="
-    startCommand: gunicorn src.photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
+    startCommand: gunicorn src.photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 600
     healthCheckPath: /health
     autoDeploy: true
     disk:

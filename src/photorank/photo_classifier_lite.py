@@ -85,15 +85,32 @@ class PhotoClassifierLite:
             return 0.0
 
     def get_quality_score(self, img):
-        """Get quality score using sharpness only (no neural network)"""
+        """Get quality score using neural network confidence + sharpness"""
         try:
+            # Load model if not already loaded
+            self._load_model()
+            
+            # Get neural network confidence score
+            img_tensor = self.preprocess_image(img)
+            
+            with torch.no_grad():
+                # Use the same model for both feature extraction and quality assessment
+                # Get the feature vector (before final pooling)
+                features = self.model(img_tensor)
+                # Use the magnitude of the feature vector as a quality indicator
+                # Higher magnitude = more confident/clear features
+                feature_magnitude = torch.norm(features).item()
+                # Normalize to 0-1 range (typical range 0-50, normalize to 0-1)
+                normalized_confidence = min(feature_magnitude / 25.0, 1.0)
+            
             # Get sharpness score
             sharpness = self.calculate_image_sharpness(img)
             # Normalize sharpness score (typical range 0-2000, normalize to 0-1)
             normalized_sharpness = min(sharpness / 1000.0, 1.0)
             
-            # Use sharpness as quality score (multiply by 10 for consistency)
-            quality_score = normalized_sharpness * 10
+            # Combine metrics (weighted average)
+            # 70% neural network confidence, 30% sharpness
+            quality_score = (0.7 * normalized_confidence + 0.3 * normalized_sharpness) * 10
             
             return quality_score
         except Exception as e:

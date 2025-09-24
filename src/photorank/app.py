@@ -27,6 +27,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 uploaded_photos = []
 clustering_results = None
 classifier = None  # Initialize lazily to save memory
+processing_status = {"status": "idle", "message": "Ready to process photos"}
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -90,12 +91,15 @@ def upload_photos():
 
 @app.route('/process', methods=['POST'])
 def process_photos():
-    global uploaded_photos, clustering_results, classifier
+    global uploaded_photos, clustering_results, classifier, processing_status
     
     if not uploaded_photos:
         return jsonify({'error': 'No photos uploaded'}), 400
     
     try:
+        processing_status = {"status": "processing", "message": "Initializing classifier..."}
+        print("Starting photo processing...")
+        
         # Initialize classifier lazily to save memory
         if classifier is None:
             print("Initializing PhotoClassifier...")
@@ -103,9 +107,11 @@ def process_photos():
             from .photo_classifier_lite import PhotoClassifierLite
             classifier = PhotoClassifierLite()
         
+        processing_status = {"status": "processing", "message": "Extracting features..."}
         # Extract images for clustering
         images = [(photo['filename'], photo['image']) for photo in uploaded_photos]
         
+        processing_status = {"status": "processing", "message": "Clustering images..."}
         # Perform clustering
         cluster_groups = classifier.cluster_images(images)
         
@@ -153,6 +159,8 @@ def process_photos():
             'clusters': clusters,
             'unclustered': unclustered
         }
+        
+        processing_status = {"status": "completed", "message": "Processing completed successfully"}
         
         # Debug: Print the structure to see what might be causing issues - UPDATED
         print("Debug - Clustering results structure:")
@@ -214,6 +222,11 @@ def delete_photo(photo_id):
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'photoCount': len(uploaded_photos)})
+
+@app.route('/status', methods=['GET'])
+def get_processing_status():
+    global processing_status
+    return jsonify(processing_status)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

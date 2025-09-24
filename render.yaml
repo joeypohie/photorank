@@ -2,7 +2,7 @@ services:
   - type: web
     name: photorank-backend
     runtime: python
-    plan: hobby
+    plan: starter
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.0

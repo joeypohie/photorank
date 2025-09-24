@@ -108,9 +108,8 @@ def process_photos():
         # Initialize classifier lazily to save memory
         if classifier is None:
             print("Initializing PhotoClassifier...")
-            # Use lite version for Hobby plan to save memory
-            from .photo_classifier_lite import PhotoClassifierLite
-            classifier = PhotoClassifierLite()
+            # Use full version for Starter plan
+            classifier = PhotoClassifier()
             print("PhotoClassifier initialized successfully")
         
         processing_status = {"status": "processing", "message": "Extracting features..."}

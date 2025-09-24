@@ -5,7 +5,7 @@ services:
     plan: hobby
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.13.0
       - key: FLASK_ENV
         value: production
       - key: MAX_CONTENT_LENGTH
@@ -16,16 +16,19 @@ services:
         value: /opt/render/persistent/.torch    # persist model weights cache
     buildCommand: |
       set -e
+      echo "=== Build Debug Info ==="
       python -V
+      pip -V
+      echo "=== Installing dependencies ==="
       pip install -U pip wheel setuptools
       pip install -r requirements.txt
       pip install .
-      # ensure persistent dirs exist
+      echo "=== Creating directories ==="
       mkdir -p /opt/render/persistent/uploads
       mkdir -p /opt/render/persistent/.torch
-      # sanity check package import
+      echo "=== Testing imports ==="
       python -c "import sys; sys.path.append('src'); import photorank.app; print('Import successful')"
-      # Note: Model warming removed to save memory for Hobby plan
+      echo "=== Build completed successfully ==="
     startCommand: gunicorn src.photorank.app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 300
     healthCheckPath: /health
     autoDeploy: true

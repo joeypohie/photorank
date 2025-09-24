@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use your actual backend URL in production
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://photorank-backend.onrender.com'  // Replace with your actual backend URL
+    ? 'https://photorank-backend.onrender.com'
     : 'http://localhost:5001';
 
 // Create axios instance with base configuration

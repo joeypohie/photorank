@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Use relative URLs for production deployment with nginx proxy
-const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001';
+// Use your actual backend URL in production
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+    ? 'https://photorank-backend.onrender.com'  // Replace with your actual backend URL
+    : 'http://localhost:5001';
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -15,7 +17,7 @@ const apiClient = axios.create({
 // Add request interceptor for debugging
 apiClient.interceptors.request.use(
     (config) => {
-        console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
+        console.log(`Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
         return config;
     },
     (error) => {

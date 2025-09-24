@@ -108,7 +108,7 @@ def process_photos():
             classifier = PhotoClassifierLite()
         
         processing_status = {"status": "processing", "message": "Extracting features..."}
-        # Extract images for clustering
+        # Extract images for clustering (only use the image data, not the full photo object)
         images = [(photo['filename'], photo['image']) for photo in uploaded_photos]
         
         processing_status = {"status": "processing", "message": "Clustering images..."}
@@ -166,9 +166,33 @@ def process_photos():
         print("Debug - Clustering results structure:")
         print(f"Number of clusters: {len(clusters)}")
         print(f"Number of unclustered: {len(unclustered)}")
-        print("Debug - Full clustering_results:", clustering_results)
         
-        return jsonify(clustering_results)
+        # Ensure no PIL Image objects are in the response
+        def clean_for_json(obj):
+            if isinstance(obj, dict):
+                return {k: clean_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_for_json(item) for item in obj]
+            elif hasattr(obj, '__dict__'):  # Check if it's a PIL Image or similar object
+                return str(obj)
+            else:
+                return obj
+        
+        cleaned_results = clean_for_json(clustering_results)
+        print("Debug - Cleaned clustering_results:", cleaned_results)
+        
+        try:
+            response = jsonify(cleaned_results)
+            print("Debug - JSON response created successfully")
+            return response
+        except Exception as json_error:
+            print(f"Debug - JSON serialization error: {json_error}")
+            # Return a simplified response without the problematic data
+            simplified_results = {
+                'clusters': [{'id': c['id'], 'photoCount': len(c['photos'])} for c in clusters],
+                'unclustered': [{'id': p['id'], 'filename': p['filename']} for p in unclustered]
+            }
+            return jsonify(simplified_results)
         
     except Exception as e:
         print(f"Error processing photos: {str(e)}")

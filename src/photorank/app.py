@@ -11,7 +11,11 @@ import io
 import base64
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+# Enable CORS for frontend with specific origins
+CORS(app, origins=[
+    'https://photorank-frontend.onrender.com',
+    'http://localhost:3000'  # For local development
+])
 
 # Configuration
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')

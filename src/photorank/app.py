@@ -12,10 +12,15 @@ import base64
 
 app = Flask(__name__)
 # Enable CORS for frontend with specific origins
-CORS(app, origins=[
-    'https://photorank-frontend.onrender.com',
-    'http://localhost:3000'  # For local development
-])
+CORS(app, 
+     origins=[
+         'https://photorank-frontend.onrender.com',
+         'http://localhost:3000'  # For local development
+     ],
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+)
 
 # Configuration
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
@@ -267,6 +272,15 @@ def delete_photo(photo_id):
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'photoCount': len(uploaded_photos)})
+
+@app.after_request
+def after_request(response):
+    """Add CORS headers to all responses"""
+    response.headers.add('Access-Control-Allow-Origin', 'https://photorank-frontend.onrender.com')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 @app.route('/status', methods=['GET'])
 def get_processing_status():
